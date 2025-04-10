@@ -29,7 +29,6 @@ Private Sub CreateDraftEmail(Response As WebResponse)
         MsgBox "Email created. View, edit if desired, and Send from your Drafts folder!"
 '       ? Response.Data("id")  This value could be used to do something else with the draft
     Else
-        If Response.StatusCode = WebStatusCode.Unauthorized And InStr(Response.Content, "expired") Then ClearAuthCodes
         MsgBox "Error " & Response.StatusCode & ": " & Response.Content
     End If
 End Sub
@@ -42,7 +41,6 @@ Private Sub SendEmail(Response As WebResponse)
     If Response.StatusCode = WebStatusCode.Accepted Then
         MsgBox "Email Sent!"
     Else
-        If Response.StatusCode = WebStatusCode.Unauthorized And InStr(Response.Content, "expired") Then ClearAuthCodes
         MsgBox "Error " & Response.StatusCode & ": " & Response.Content
     End If
 End Sub

@@ -16,14 +16,14 @@ Private Sub cmdCreateContact_Click()
         Exit Sub
     End If
     'First parameter should be either an empty string "" or use the name of a folder
-    CreateGraphContact Graph.CreateContact("BusinessContacts", Nz(Me.givenName, ""), Nz(Me.surname, ""), Me.fileAs, Nz(Me.jobTitle, ""), Nz(Me.companyName, ""), Nz(sBusinessPhones, ""), Me.sEmailAddresses)
+    'for example my contacts are in TempContacts so I use that
+    CreateGraphContact Graph.CreateContact("TempContacts", Nz(Me.givenName, ""), Nz(Me.surname, ""), Me.fileAs, Nz(Me.jobTitle, ""), Nz(Me.companyName, ""), Nz(sBusinessPhones, ""), Me.sEmailAddresses)
 End Sub
 
 Private Sub CreateGraphContact(Response As WebResponse)
     If Response.StatusCode = WebStatusCode.Created Then
         MsgBox "Contact created."
     Else
-        If Response.StatusCode = WebStatusCode.Unauthorized And InStr(Response.Content, "expired") Then ClearAuthCodes
         MsgBox "Error " & Response.StatusCode & ": " & Response.Content
     End If
 End Sub

@@ -14,8 +14,8 @@ Private Sub Form_Open(Cancel As Integer)
     CurrentDb.Execute "DELETE FROM TempContactsTable"
     
     'parameter is optional, if filled in use the name of a folder,
-    'for example my contacts are in BusinessContacts so I use that
-    ListOutlookContacts Graph.ListContacts("")
+    'for example my contacts are in TempContacts so I use that
+    ListOutlookContacts Graph.ListContacts("TempContacts")
     Me.lstContacts.Requery
 End Sub
 
@@ -25,7 +25,7 @@ Private Sub ListOutlookContacts(Response As WebResponse)
         Dim EmailColl As Collection
         Dim EmailAddress As Dictionary
         Dim rs As Recordset
-        
+                
         If IsEmpty(Response.Data("value")) Then
             MsgBox "No contacts for this folder in this tenant."
         Else
@@ -50,7 +50,6 @@ Private Sub ListOutlookContacts(Response As WebResponse)
         End If
         Set rs = Nothing
     Else
-        If Response.StatusCode = WebStatusCode.Unauthorized And InStr(Response.Content, "expired") Then ClearAuthCodes
         MsgBox "Error " & Response.StatusCode & ": " & Response.Content
     End If
 End Sub

@@ -22,7 +22,6 @@ Private Sub CreateCalendarEvent(Response As WebResponse)
     If Response.StatusCode = WebStatusCode.Created Then
         MsgBox "Event created."
     Else
-        If Response.StatusCode = WebStatusCode.Unauthorized And InStr(Response.Content, "expired") Then ClearAuthCodes
         MsgBox "Error " & Response.StatusCode & ": " & Response.Content
     End If
 End Sub
