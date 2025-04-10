@@ -17,6 +17,7 @@ Public Property Get Client() As WebClient
         
         Dim Auth As New GraphAuthenticator
         Auth.Setup pClientId, pTenantID, pWaitForLogin
+'        Auth.AddScope "offline_access"  'if using Refresh Token
         Auth.AddScope "mail.readwrite"
         Auth.AddScope "mail.send"
         Auth.AddScope "calendars.readwrite"
@@ -35,6 +36,13 @@ Public Sub ClearAuthCodes()
     Set Auth = Client.Authenticator
     Call Auth.ClearCodes
 End Sub
+
+Public Sub Logout()
+    Dim Auth As New GraphAuthenticator
+    Set Auth = Client.Authenticator
+    Call Auth.Logout
+End Sub
+
 
 Public Function CreateDraftMessage(Subject As String, BodyType As String, BodyContent As String, toRecipients As String, ccRecipients As String, bccRecipients As String, AttachmentPath As String) As WebResponse
     Dim Request As New WebRequest
@@ -87,7 +95,18 @@ Public Function CreateDraftMessage(Subject As String, BodyType As String, BodyCo
         If Trim(bccRecipients) <> "" Then .AddBodyParameter "bccRecipients", COLbccRecipients
         If Trim(AttachmentPath) <> "" Then .AddBodyParameter "attachments", attachments
     End With
-    Set CreateDraftMessage = Client.Execute(Request)
+    
+    Dim sStatus As String
+    sStatus = "Retry"
+    While sStatus = "Retry"
+        Set CreateDraftMessage = Client.Execute(Request)
+        If CreateDraftMessage.StatusCode = WebStatusCode.Unauthorized And InStr(CreateDraftMessage.Content, "expired") Then
+            ClearAuthCodes
+            sStatus = "Retry"
+        Else
+            sStatus = "Done"
+        End If
+    Wend
 
 End Function
 
@@ -165,7 +184,17 @@ Public Function GraphSendMail(Subject As String, BodyType As String, BodyContent
     End With
     
     Request.AddBodyParameter "message", message
-    Set GraphSendMail = Client.Execute(Request)
+    Dim sStatus As String
+    sStatus = "Retry"
+    While sStatus = "Retry"
+        Set GraphSendMail = Client.Execute(Request)
+        If GraphSendMail.StatusCode = WebStatusCode.Unauthorized And InStr(GraphSendMail.Content, "expired") Then
+            ClearAuthCodes
+            sStatus = "Retry"
+        Else
+            sStatus = "Done"
+        End If
+    Wend
 
 End Function
 
@@ -258,11 +287,23 @@ Public Function CreateEvent(Subject As String, BodyType As String, BodyContent A
         .AddBodyParameter "allowNewTimeProposals", "true"
         .AddBodyParameter "transactionId", CreateGUID()
     End With
-    Set CreateEvent = Client.Execute(Request)
+    
+    Dim sStatus As String
+    sStatus = "Retry"
+    While sStatus = "Retry"
+        Set CreateEvent = Client.Execute(Request)
+        If CreateEvent.StatusCode = WebStatusCode.Unauthorized And InStr(CreateEvent.Content, "expired") Then
+            ClearAuthCodes
+            sStatus = "Retry"
+        Else
+            sStatus = "Done"
+        End If
+    Wend
 End Function
 
 Public Function ListContacts(sFolder As String) As WebResponse
     Dim Request As New WebRequest
+    
     If sFolder = "" Then
         Request.Resource = "/me/contacts"
     Else
@@ -272,27 +313,45 @@ Public Function ListContacts(sFolder As String) As WebResponse
     Request.Method = WebMethod.HttpGET
     Request.Format = WebFormat.JSON
     Request.AddQuerystringParam "Top", 1000
-    Set ListContacts = Client.Execute(Request)
+    
+    Dim sStatus As String
+    sStatus = "Retry"
+    While sStatus = "Retry"
+        Set ListContacts = Client.Execute(Request)
+        If ListContacts.StatusCode = WebStatusCode.Unauthorized And InStr(ListContacts.Content, "expired") Then
+            ClearAuthCodes
+            sStatus = "Retry"
+        Else
+            sStatus = "Done"
+        End If
+    Wend
 End Function
 
 Public Function GetFolderID(sFolder As String) As String
     Dim Request As New WebRequest
     Dim Response As New WebResponse
     
-    Request.Resource = "/me/contactFolders"
-    Set Response = Client.Execute(Request)
-    If Response.StatusCode = WebStatusCode.OK Then
-        Dim FolderInfo As Dictionary
-        For Each FolderInfo In Response.Data("value")
-            If FolderInfo("displayName") = sFolder Then
-                GetFolderID = FolderInfo("id")
+    GetFolderID = "Retry"
+    While GetFolderID = "Retry"
+        Request.Resource = "/me/contactFolders"
+        Set Response = Client.Execute(Request)
+        If Response.StatusCode = WebStatusCode.OK Then
+            Dim FolderInfo As Dictionary
+            For Each FolderInfo In Response.Data("value")
+                If FolderInfo("displayName") = sFolder Then
+                    GetFolderID = FolderInfo("id")
+                End If
+            Next FolderInfo
+        Else
+            If Response.StatusCode = WebStatusCode.Unauthorized And InStr(Response.Content, "expired") Then
+                ClearAuthCodes
+                GetFolderID = "Retry"
+            Else
+                MsgBox "Error " & Response.StatusCode & ": " & Response.Content
+                GetFolderID = "Error"
             End If
-        Next FolderInfo
-    Else
-        If Response.StatusCode = WebStatusCode.Unauthorized And InStr(Response.Content, "expired") Then ClearAuthCodes
-        MsgBox "Error " & Response.StatusCode & ": " & Response.Content
-        GetFolderID = "Error"
-    End If
+        End If
+    Wend
 End Function
 
 Public Function CreateContact(sFolder As String, givenName As String, surname As String, fileAs As String, jobTitle As String, companyName As String, sBusinessPhones As String, sEmailAddresses As String) As WebResponse
@@ -349,5 +408,17 @@ Public Function CreateContact(sFolder As String, givenName As String, surname As
         .AddBodyParameter "emailAddresses", emailAddresses
         If iPhoneCount > 0 Then .AddBodyParameter "businessPhones", businessPhones
     End With
-    Set CreateContact = Client.Execute(Request)
+    
+    Dim sStatus As String
+    sStatus = "Retry"
+    While sStatus = "Retry"
+        Set CreateContact = Client.Execute(Request)
+        If CreateContact.StatusCode = WebStatusCode.Unauthorized And InStr(CreateContact.Content, "expired") Then
+            ClearAuthCodes
+            sStatus = "Retry"
+        Else
+            sStatus = "Done"
+        End If
+    Wend
 End Function
+
