@@ -30,6 +30,7 @@ Option Explicit
 
 Public AuthorizationUrl As String
 Private Const auth_RedirectUrl As String = "https://login.microsoftonline.com/common/oauth2/nativeclient"
+Private sSessionID As String
 
 ' --------------------------------------------- '
 ' Properties
@@ -170,7 +171,7 @@ End Sub
 Public Sub Login() ' If you have Access with the new Web browser control
     On Error GoTo auth_ErrorHandling
     Dim dtEnd As Date
-
+    
     ' No need to login if API key, authorization code, or token have been set
     If Me.ApiKey <> "" Or Me.AuthorizationCode <> "" Or Me.Token <> "" Then
         Exit Sub
@@ -187,6 +188,7 @@ Public Sub Login() ' If you have Access with the new Web browser control
     Dim auth_IE As Object
     DoCmd.OpenForm "EdgeForm"
     Set auth_IE = Forms!EdgeForm.EdgeBrowser
+'    Set auth_IE = CreateObject("Selenium.EdgeDriver")
     auth_IE.Navigate GetLoginUrl()
 
     ' Wait for login to complete
@@ -242,6 +244,13 @@ End Sub
 Public Sub Logout()
     Me.AuthorizationCode = ""
     Me.Token = ""
+    
+    Dim auth_IE As Object
+    DoCmd.OpenForm "EdgeForm"
+    Set auth_IE = Forms!EdgeForm.EdgeBrowser
+    auth_IE.Navigate "https://m365.cloud.microsoft/estslogout?ru=%2F&sessionId=" & sSessionID
+    If Not auth_IE Is Nothing Then: DoCmd.Close acForm, "EdgeForm"
+    Set auth_IE = Nothing
 End Sub
 
 ''
@@ -362,7 +371,9 @@ Public Function GetToken(Client As WebClient) As String
     
     If auth_Response.StatusCode = WebStatusCode.OK Then
         GetToken = auth_Response.Data("access_token")
-    Else
+'        GetToken = auth_Response.Data("refresh_token")
+'       auth_Response.Data("expires_in") tells you the number of seconds the token is good for
+     Else
         Err.Raise 11041 + vbObjectError, "GraphAuthenticator.GetToken", _
             auth_Response.StatusCode & ": " & auth_Response.Content
     End If
@@ -467,6 +478,9 @@ Private Function auth_LoginExtractCode(auth_IE As Object) As String
     sRedirectURL = Mid(sRedirectURL, InStr(sRedirectURL, "code=") + 5)
     sRedirectURL = Left(sRedirectURL, InStr(sRedirectURL, "session_state=") - 2)
     auth_LoginExtractCode = sRedirectURL
+    
+    sSessionID = auth_IE.LocationURL
+    sSessionID = Mid(sSessionID, InStr(sSessionID, "session_state=") + 14)
 End Function
 
 Private Function auth_LoginIsComplete(auth_IE As Object) As Boolean
